@@ -1,0 +1,4 @@
+#NAME   DIR                           PATTERN
+IPTV    /opt/apps/iptv/apache/logs    iptvlogin.telia.se-80
+FITV    /opt/apps/fitv/apache/logs    iptvlogin.telia.se-80
+DKTV    /opt/logs/apache/dktv         dk-iptvlogin.telia.se-80
