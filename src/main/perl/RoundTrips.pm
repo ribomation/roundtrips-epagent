@@ -158,7 +158,14 @@ sub separateContext {
 # Remarks :
 sub normalizeUri {
     my ($this, $uri) = @_;
+
+    # /rest/vodstores/2926387866/videocategories/32475
     $uri =~ s|/[\d,]+|/_|g;
+
+    # /change/FORGOTTEN_PWD/hemis@telia.com/d1f18739f0ccd376a94a8f9a209be1e619146ed3
+    # /change/CHANGE_EMAIL/jorijori/da21313b4949ef2a76a18d5a755b54fb01ab6146
+    $uri =~ s#(FORGOTTEN_PWD|CHANGE_EMAIL)/[\w@.-]+/\w+$#$1/_#;
+
     return $uri;
 }
 

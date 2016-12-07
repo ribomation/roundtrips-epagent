@@ -30,6 +30,19 @@ ok($roundTrips->isa('RoundTrips'), 'correct type');
     is(substr($result{uri}, 0, 7), '/loop54', 'test data: uri prefix');
 }
 
+{ ### $roundTrips->extract()
+    my $logline = q{66.102.9.158 - - [04/Dec/2016:20:15:45 +0100] "GET /change/CHANGE_EMAIL/dwdkarlsson@gmail.com/fc9e5f5b144a759a9f71a368197e624ccc3a0826 HTTP/1.1" 200 2491 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.75 Safari/537.36 Google Favicon" 629 "-"};
+
+    my %result = $roundTrips->extract($logline);
+    ok(%result, 'test data: got result');
+    ok($result{success}, 'test data: success');
+
+    is($result{ip}, '66.102.9.158', 'test data: ip');
+    is($result{code}, '200', 'test data: code');
+    is($result{size}, '2491', 'test data: size');
+    is($result{time}, '629', 'test data: time');
+}
+
 { ### $roundTrips->shouldSkip()
     my %data;
     $data{success} = 1;
@@ -96,6 +109,23 @@ ok($roundTrips->isa('RoundTrips'), 'correct type');
     $uri = '/rest/livechannels/136,138,139,142,144,150,154,155,156,157,159,160,161,162,163,164,166,168,171,172,174,176,178,179,183,184,185,186,187,1879,188,1880,1882,1883,1884,1885,197,2119446120,601,602,604,605,606,610,613,614,615,616,617,618,619,620,621,622,623,626,627,629,632,633,636,637,638,639,640,643,644,645,646,647,648,678,679,697,698,699,702,706,707,708,719,720,721,729,730,731,732,733,734,735,736,737,738,779486864,779490117,839798335/epg';
     is($roundTrips->normalizeUri($uri), '/rest/livechannels/_/epg', 'normalize: many IDs');
 }
+
+{ ### $roundTrips->normalizeUri(URI)
+    # handle URIs with non-numeric IDs, such as email and userid
+
+    my $uri = '/change/FORGOTTEN_PWD/hemis@telia.com/d1f18739f0ccd376a94a8f9a209be1e619146ed3';
+    is($roundTrips->normalizeUri($uri), '/change/FORGOTTEN_PWD/_', 'normalize: email and link-id');
+
+    $uri = '/change/FORGOTTEN_PWD/larssontvtime/76ed63d47b97cd832cea67746e5be6fc3fc1a831';
+    is($roundTrips->normalizeUri($uri), '/change/FORGOTTEN_PWD/_', 'normalize: email');
+
+    $uri = '/change/CHANGE_EMAIL/jorijori/da21313b4949ef2a76a18d5a755b54fb01ab6146';
+    is($roundTrips->normalizeUri($uri), '/change/CHANGE_EMAIL/_', 'normalize: email');
+
+    $uri = '/change/CHANGE_EMAIL/dwdkarlsson@gmail.com/fc9e5f5b144a759a9f71a368197e624ccc3a0826';
+    is($roundTrips->normalizeUri($uri), '/change/CHANGE_EMAIL/_', 'normalize: email');
+}
+
 
 { ### $roundTrips->collectMetrics(...)
     my $metrics = {};
