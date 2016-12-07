@@ -74,14 +74,18 @@ sub extract {
     die 'empty log line' unless $logline;
 
     #131.177.117.139 - - [05/Dec/2016:08:17:30 +0100] "GET /loop54/v1/similarvideos?format=smooth_sd&fromIndex=0&oneCoverObjectId=1769852875&parental=true&playId=-1&toIndex=24 HTTP/1.1" 200 4860 "https://pilot.soneraviihde.fi/store/video/7125660" "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko" 642304 "chyVYFJT8p7cfvn0nYY8JrvhtG9pG2Sb12D1RJVy1pMzh5h2x5SX!1738450180"
+    #{IP} - - [{date}] "{op} {uri} HTTP/1.1" {code} {size} "{referer}" "{user-agent}" {time} "{session-id}"
     my $REGEX = qr{\A
         (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})        #[1] 131.177.117.139
         [\s-]+                                      #' - - '
         \[([ +:/\d\w]+)\]                           #[2] [05/Dec/2016:08:17:30 +0100]
         \s"(\w+)\s([^"]+)\s[^"]+"                   #[3,4] "OP URI HTTPVERS"
         \s+(\d+)                                    #[5] CODE
-        \s+(\d+)                                    #[6] TIME
-        .+
+        \s+(\d+)                                    #[6] SIZE
+        \s+"[^"]+"                                  #referer
+        \s+"[^"]+"                                  #user-agent
+        \s+(\d+)                                    #[7] TIME
+        .+                                          #the remaining part
         \z}x;
 
     if ($logline =~ $REGEX) {
@@ -92,7 +96,8 @@ sub extract {
         $result{op} = $3;
         $result{uri} = $4;
         $result{code} = $5;
-        $result{time} = $6;
+        $result{size} = $6;
+        $result{time} = $7;
         return %result;
     }
 
