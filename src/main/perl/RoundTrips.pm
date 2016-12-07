@@ -110,10 +110,11 @@ sub extract {
 # Remarks : checks if any of the data items indicates the logline should be skipped
 sub shouldSkip {
     my ($this, $data) = @_;
-    return 1 if $data->{uri} =~ qr{\A/\z}x;
+    return 1 if $data->{uri} =~ qr{\A/[.]*\z}x;
     return 1 if $data->{uri} =~ qr{\A/assets/.+}x;
     return 1 if $data->{uri} =~ qr{\A/static/.+}x;
     return 1 if $data->{uri} =~ qr{\A/templates.+}x;
+    return 1 if $data->{uri} =~ qr{\A/[.]well-known.+}x;
     return 1 if $data->{uri} =~ qr{\.json\z}x;
     return 1 if $data->{uri} =~ qr{\.js\z}x;
     return 1 if $data->{uri} =~ qr{\.css\z}x;

@@ -66,6 +66,19 @@ ok($roundTrips->isa('RoundTrips'), 'correct type');
     is($roundTrips->shouldSkip(\%data), 1, 'skipping ...*.js');
 }
 
+{ ### $roundTrips->shouldSkip()
+    # additional URIs
+    my %data;
+    $data{success} = 1;
+
+    $data{uri} = '/...';
+    is($roundTrips->shouldSkip(\%data), 1, 'skipping /... (ROOT + DOTs)');
+
+    $data{uri} = '/.well-known/assetlinks';
+    is($roundTrips->shouldSkip(\%data), 1, 'skipping .well-known');
+
+}
+
 { ### $roundTrips->stripQueryPart($uri)
     my $uri = '/rest/whatever';
     is($roundTrips->stripQueryPart($uri), '/rest/whatever', 'stripping absent query');
