@@ -51,15 +51,21 @@ sub thresholds {
 sub processLine {
     my ($this, $logline, $metrics) = @_;
 
-    my %data = $this->extract($logline);
+    my %data = $this->extractData($logline);
     return unless $data{success};
-    return if $this->shouldSkip(\%data);
+    return if $this->shouldSkipData(\%data);
+
+    $data{uri} = $this->stripQueryFromURI($data{uri});
+    return if $this->shouldSkipURI($data{uri});
+
+    $data{uri} = $this->normalizeURI($data{uri});
+    {
+        my ($ctx, $uri) = $this->splitURI($data{uri});
+        $data{ctx} = $ctx;
+        $data{uri} = $uri;
+    }
 
     $data{time} = int($data{time} / 1000.0 + 0.5);
-    $data{uri} = $this->stripQueryPart($data{uri});
-    $data{uri} = $this->normalizeUri($data{uri});
-    $this->separateContext(\%data);
-
     $this->collectMetrics  ($metrics, $data{ctx}, $data{uri}, $data{time}, $data{code});
     $this->collectHistogram($metrics, $data{ctx}, $data{uri}, $data{time})
 }
@@ -69,7 +75,7 @@ sub processLine {
 # Usage   : $m->extract($logline)
 # Returns :
 # Remarks : Extracts all 'relevant' payload parts from the logline
-sub extract {
+sub extractData {
     my ($this, $logline) = @_;
     die 'empty log line' unless $logline;
 
@@ -106,18 +112,33 @@ sub extract {
 
 # Method  : shouldSkip
 # Usage   : $m->shouldSkip(\%data)
-# Returns : 1 IF skip current logline
+# Returns : 1 IF skip current logline data
 # Remarks : checks if any of the data items indicates the logline should be skipped
-sub shouldSkip {
+sub shouldSkipData {
     my ($this, $data) = @_;
-    return 1 if $data->{uri} =~ qr{\A/[.]*\z}x;
-    return 1 if $data->{uri} =~ qr{\A/assets/.+}x;
-    return 1 if $data->{uri} =~ qr{\A/static/.+}x;
-    return 1 if $data->{uri} =~ qr{\A/templates.+}x;
-    return 1 if $data->{uri} =~ qr{\A/[.]well-known.+}x;
-    return 1 if $data->{uri} =~ qr{\.json\z}x;
-    return 1 if $data->{uri} =~ qr{\.js\z}x;
-    return 1 if $data->{uri} =~ qr{\.css\z}x;
+
+    return 0;
+}
+
+# Method  : shouldSkipURI
+# Usage   : $m->shouldSkip($uri)
+# Returns : 1 IF skip current URI
+sub shouldSkipURI {
+    my ($this, $uri) = @_;
+
+    return 1 if $uri =~ qr{\A/[.]*\z}x;
+    return 1 if $uri =~ qr{\A/assets/.+}x;
+    return 1 if $uri =~ qr{\A/static/.+}x;
+    return 1 if $uri =~ qr{\A/templates.+}x;
+    return 1 if $uri =~ qr{\A/Imagecache\.html.*}x;
+    return 1 if $uri =~ qr{\A/[.]well-known.+}x;
+    return 1 if $uri =~ qr{\.json\z}x;
+    return 1 if $uri =~ qr{\.js\z}x;
+    return 1 if $uri =~ qr{\.css\z}x;
+    return 1 if $uri =~ qr{\.jpg\z}x;
+    return 1 if $uri =~ qr{\.jepg\z}x;
+    return 1 if $uri =~ qr{\.png\z}x;
+    return 1 if $uri =~ qr{\.gif\z}x;
 
     return 0;
 }
@@ -126,7 +147,7 @@ sub shouldSkip {
 # Usage   : $m->stripQueryPart($uri)
 # Returns : URI without the ?suffix
 # Remarks :
-sub stripQueryPart {
+sub stripQueryFromURI {
     my ($this, $uri) = @_;
     my $pos = index $uri, '?';
     return $uri if $pos < 0;
@@ -138,26 +159,25 @@ sub stripQueryPart {
 # Returns :
 # Remarks : splits the $data{uri} into context and remaining uri
 #           /ctx/uri/abc --> (/ctx, /uri/abc)
-sub separateContext {
-    my ($this, $data) = @_;
-    my $uri = $data->{uri};
-
+sub splitURI {
+    my ($this, $uri) = @_;
+    my $ctx = '';
     my $pos = index $uri, '/', 1;
     if ($pos < 0) {
-        $data->{ctx} = $uri;
-        $data->{uri}     = '';
-        return;
+        $ctx = $uri;
+        $uri = '';
+    } else {
+        $ctx = substr $uri, 0, $pos;
+        $uri = substr $uri, $pos;
     }
-
-    $data->{ctx} = substr $uri, 0, $pos;
-    $data->{uri}     = substr $uri, $pos;
+    return ($ctx, $uri);
 }
 
 # Method  : normalizeUri
 # Usage   : $m->normalizeUri($uri)
 # Returns : URI stripped from numeric IDs
 # Remarks :
-sub normalizeUri {
+sub normalizeURI {
     my ($this, $uri) = @_;
 
     # /rest/vodstores/2926387866/videocategories/32475
@@ -166,6 +186,15 @@ sub normalizeUri {
     # /change/FORGOTTEN_PWD/hemis@telia.com/d1f18739f0ccd376a94a8f9a209be1e619146ed3
     # /change/CHANGE_EMAIL/jorijori/da21313b4949ef2a76a18d5a755b54fb01ab6146
     $uri =~ s#(FORGOTTEN_PWD|CHANGE_EMAIL)/[\w@.-]+/\w+$#$1/_#;
+
+    # /rest/secure/token/mm77ri6r5oh8idhhptlmonlbjg01f5fi8pjto1ummtodtu1jgfu
+    $uri =~ s#/rest/secure/token/\w+$#/rest/secure/token/_#;
+
+    # /rest/v1/encrypted/servicetickets/b9bff25d6199196a4bc92a35ada05f7c/channelsticket
+    $uri =~ s#/rest/v1/encrypted/servicetickets/\w+/channelsticket#/rest/v1/encrypted/servicetickets/_/channelsticket#;
+
+    # /engagement/rest/v1/encrypted/servicetickets/353b6d70a820806d29174d526ad164d5/activestream
+    $uri =~ s#/engagement/rest/v1/encrypted/servicetickets/\w+/activestream#/engagement/rest/v1/encrypted/servicetickets/_/activestream#;
 
     return $uri;
 }
