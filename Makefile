@@ -14,6 +14,7 @@ help:
 	@echo "targets:"
 	@echo "  build   - builds the TAR archive"
 	@echo "  test    - runs the unit tests"
+	@echo "  testv   - runs the unit tests in verbose mode, showing all tests"
 	@echo "  clean   - removes the build/ dir"
 
 clean:
@@ -21,6 +22,9 @@ clean:
 
 test:
 	prove $(TST_DIR)/perl/*.t
+
+testv:
+	prove --verbose $(TST_DIR)/perl/*.t
 
 build: clean
 	mkdir -p $(DST_DIR)/lib

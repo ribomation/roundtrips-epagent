@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use Test::More;
 use FindBin;
+use Data::Dumper;
 use lib "$FindBin::Bin/../../main/perl";
 use RoundTrips;
 use_ok('RoundTrips');
@@ -22,8 +23,13 @@ ok(defined $roundTrips, 'obj defined');
     my $testData = q{131.177.117.139 - - [05/Dec/2016:08:17:30 +0100] "GET /loop54/v1/similarvideos?format=smooth_sd&fromIndex=0&oneCoverObjectId=1769852875&parental=true&playId=-1&toIndex=24 HTTP/1.1" 200 4860 "https://pilot.soneraviihde.fi/store/video/7125660" "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko" 642304 "chyVYFJT8p7cfvn0nYY8JrvhtG9pG2Sb12D1RJVy1pMzh5h2x5SX!1738450180"};
     my %result = $roundTrips->extractData($testData);
     ok(%result, 'test data: got result');
-
     ok($result{success}, 'test data: success');
+    unless ($result{success}) {
+        print "*** failure ***\n";
+        print Dumper(\%result);
+        exit 42;
+    }
+
     is($result{ip}, '131.177.117.139', 'test data: ip');
     is($result{date}, '05/Dec/2016:08:17:30 +0100', 'test data: date');
     is($result{op}, 'GET', 'test data: op');

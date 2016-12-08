@@ -139,6 +139,8 @@ sub shouldSkipURI {
     return 1 if $uri =~ qr{\.jepg\z}x;
     return 1 if $uri =~ qr{\.png\z}x;
     return 1 if $uri =~ qr{\.gif\z}x;
+    return 1 if $uri =~ qr{\.ico\z}x;
+    return 1 if $uri =~ qr{\.txt\z}x;
 
     return 0;
 }
@@ -165,11 +167,15 @@ sub splitURI {
     my $pos = index $uri, '/', 1;
     if ($pos < 0) {
         $ctx = $uri;
-        $uri = '';
+        $uri = '_';
     } else {
         $ctx = substr $uri, 0, $pos;
         $uri = substr $uri, $pos;
     }
+
+    $ctx = '_' if length($ctx) == 0;
+    $uri = '_' if length($uri) == 0;
+
     return ($ctx, $uri);
 }
 
@@ -210,13 +216,20 @@ sub normalizeURI {
 sub collectMetrics {
     my ($this, $metrics, $ctx, $uri, $time, $code) = @_;
 
+    $ctx  = '_' if length($ctx) == 0;
+    $ctx  = '_' if $ctx eq 'null';
+    $uri  = '_' if length($uri) == 0;
+    $uri  = '_' if $uri eq 'null';
+    $time = 0 unless $time >= 0;
+    $code = 0 unless $code >= 0;
+
     $this->findMetric($metrics, "$ctx|$uri:Requests per Interval", 'PerIntervalCounter')->collect(1);
     $this->findMetric($metrics, "$ctx|$uri|StatusCode:$code"     , 'PerIntervalCounter')->collect(1);
     $this->findMetric($metrics, "$ctx|$uri:Average Time [ms]"    , 'IntAverage'        )->collect($time);
 
-    $this->findMetric($metrics, "ALL:Requests per Interval"      , 'PerIntervalCounter')->collect(1);
-    $this->findMetric($metrics, "ALL|StatusCode:$code"           , 'PerIntervalCounter')->collect(1);
-    $this->findMetric($metrics, "ALL:Average Time [ms]"          , 'IntAverage'        )->collect($time);
+    $this->findMetric($metrics, "ALL:Requests per Interval", 'PerIntervalCounter')->collect(1);
+    $this->findMetric($metrics, "ALL|StatusCode:$code"     , 'PerIntervalCounter')->collect(1);
+    $this->findMetric($metrics, "ALL:Average Time [ms]"    , 'IntAverage'        )->collect($time);
 }
 
 # Method  : collectHistogram
@@ -231,6 +244,10 @@ sub collectHistogram {
     my @histogram  = @{ $this->thresholds() };
     my $numBuckets = $#histogram;
 
+    $ctx  = '_' unless length($ctx) > 0;
+    $uri  = '_' unless length($uri) > 0;
+    $time = 0 unless $time >= 0;
+
     for (my $k = $numBuckets; $k >= 0; $k--) {
         my $lowerBound = $histogram[$k];
         my $upperBound = ($k < $numBuckets) ? $histogram[$k + 1] : 'oo';
@@ -238,7 +255,7 @@ sub collectHistogram {
         if ($lowerBound <= $time) {
             my $name = "Time Distribution:H$k) $lowerBound - $upperBound [ms]";
             $this->findMetric($metrics, "$ctx|$uri|$name", 'PerIntervalCounter')->collect(1);
-            $this->findMetric($metrics, "ALL|$name", 'PerIntervalCounter')->collect(1);
+            $this->findMetric($metrics, "ALL|$name"      , 'PerIntervalCounter')->collect(1);
             return;
         }
     }
