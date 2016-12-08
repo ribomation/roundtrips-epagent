@@ -129,6 +129,7 @@ sub shouldSkipURI {
     return 1 if $uri =~ qr{\A/[.]*\z}x;
     return 1 if $uri =~ qr{\A/assets/.+}x;
     return 1 if $uri =~ qr{\A/static/.+}x;
+    return 1 if $uri =~ qr{\A/images/.+}x;
     return 1 if $uri =~ qr{\A/templates.+}x;
     return 1 if $uri =~ qr{\A/Imagecache\.html.*}x;
     return 1 if $uri =~ qr{\A/[.]well-known.+}x;
@@ -187,7 +188,7 @@ sub normalizeURI {
     my ($this, $uri) = @_;
 
     # /rest/vodstores/2926387866/videocategories/32475
-    $uri =~ s|/[\d,]+|/_|g;
+    $uri =~ s|/[\d,_]+|/_|g;
 
     # /change/FORGOTTEN_PWD/hemis@telia.com/d1f18739f0ccd376a94a8f9a209be1e619146ed3
     # /change/CHANGE_EMAIL/jorijori/da21313b4949ef2a76a18d5a755b54fb01ab6146
@@ -201,6 +202,12 @@ sub normalizeURI {
 
     # /engagement/rest/v1/encrypted/servicetickets/353b6d70a820806d29174d526ad164d5/activestream
     $uri =~ s#/engagement/rest/v1/encrypted/servicetickets/\w+/activestream#/engagement/rest/v1/encrypted/servicetickets/_/activestream#;
+
+    # /npvr/rest/v1/recordings/_-bc8e-11e6-b695-68b599780e90
+    $uri =~ s#/npvr/rest/v1/recordings/[0-9a-z_-]+#/npvr/rest/v1/recordings/_#;
+
+    # /rest/secure/recordings/_-bc8e-11e6-b695-68b599780e90/decryptionticket
+    $uri =~ s#/rest/secure/recordings/[0-9a-z_-]+/decryptionticket#/rest/secure/recordings/_/decryptionticket#;
 
     return $uri;
 }
