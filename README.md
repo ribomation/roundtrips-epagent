@@ -4,6 +4,14 @@ aggregate Apache HTTPd log files.
 
 _N.B. If you are not using CA APM, you can stop reading now._
 
+# Purpose
+
+This is a shrink-wrapped EPAgent that parses Apache HTTPd log files and creates round-trip
+response time and response count metrics. In addition, it also aggregates response time
+values into histogram form, to help keeping track of response SLAs.
+
+![Sample RoundTrip Histogram Metric](src/docs/sample-metric.jpg?raw=true "Sample RoundTrip Histogram Metric")
+
 # Requirements
 
 * Make
