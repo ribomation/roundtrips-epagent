@@ -40,6 +40,5 @@ testv:
 	prove --verbose $(TST_DIR)/perl/*.t
 
 metrics:
-	( cd $(CLW_DIR); ./get-metric-names.pl )
-
+	( cd $(CLW_DIR); perl ./get-metric-names.pl )
 
